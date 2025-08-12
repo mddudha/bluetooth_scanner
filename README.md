@@ -12,11 +12,25 @@ A Flutter application for scanning and monitoring Bluetooth Low Energy (BLE) dev
 - **Cross-platform**: Works on both Android and iOS devices
 - **Permission Management**: Automatic handling of Bluetooth and location permissions
 
-## 📱 Platform Support
+## 📱 Platform Support & Considerations
 
-- **Android**: Full support with location permissions
-- **iOS**: Full support with Bluetooth permissions
-- **macOS**: Supported for development and testing
+### **Android:**
+- **Permissions**: Requires `ACCESS_FINE_LOCATION` for BLE scanning (Android requirement)
+- **Bluetooth Permissions**: `BLUETOOTH_SCAN` and `BLUETOOTH_CONNECT` for Android 12+
+- **Background Scanning**: Supported with foreground service capabilities
+- **Performance**: Optimized for Android's Bluetooth stack
+
+### **iOS:**
+- **Permissions**: Requires `NSBluetoothAlwaysUsageDescription` and location permissions
+- **Background Limitations**: iOS restricts background Bluetooth scanning
+- **Privacy**: Strict permission requirements for Bluetooth access
+- **Performance**: Optimized for iOS CoreBluetooth framework
+
+### **Cross-Platform Considerations:**
+- **Permission Handling**: Platform-specific permission requests with unified interface
+- **Error Handling**: Different error types and recovery strategies per platform
+- **UI Adaptation**: Material Design 3 with platform-specific theming
+- **Testing**: Requires physical devices (Bluetooth scanning not available in simulators)
 
 ## 🛠️ Setup Instructions
 
@@ -90,38 +104,50 @@ The app automatically requests necessary permissions:
 5. **Monitor charts** - View signal strength trends over time
 6. **Background scanning** - Toggle continuous background monitoring
 
-## 🏗️ Architecture
+## 🏗️ Architecture & Implementation Approach
 
-The app follows a modular architecture with separated concerns:
+The app follows a **modular service-oriented architecture** with clear separation of concerns:
 
+### **Core Architecture:**
 ```
 lib/
-├── main.dart                 # App entry point
+├── main.dart                 # App entry point & MaterialApp setup
 ├── models/
-│   └── scan_snapshot.dart    # Data models
+│   └── scan_snapshot.dart    # Data models for time-series data
 ├── screens/
-│   └── home_screen.dart      # Main UI
+│   └── home_screen.dart      # Main UI with state management
 ├── services/
-│   ├── bluetooth_service.dart    # BLE operations
-│   ├── data_service.dart         # Data management
-│   └── permission_service.dart   # Permission handling
+│   ├── bluetooth_service.dart    # BLE operations & adapter state
+│   ├── data_service.dart         # Data management & snapshots
+│   └── permission_service.dart   # Cross-platform permissions
 ├── utils/
-│   ├── constants.dart        # App constants
+│   ├── constants.dart        # App constants & configuration
 │   ├── helpers.dart          # Utility functions
-│   └── logger.dart           # Logging utilities
+│   └── logger.dart           # Centralized logging
 └── widgets/
-    ├── chart_widget.dart     # Data visualization
-    └── filter_widget.dart    # UI components
+    ├── chart_widget.dart     # Data visualization with fl_chart
+    └── filter_widget.dart    # Reusable UI components
 ```
+
+### **Implementation Approach:**
+
+1. **Service Layer Pattern**: Each major functionality is encapsulated in a dedicated service class
+2. **Stream-Based Architecture**: Real-time data flow using Dart Streams for reactive UI updates
+3. **Singleton Services**: Ensures single instances for Bluetooth, Data, and Permission services
+4. **Error Handling**: Comprehensive error tracking with type-based categorization
+5. **Memory Management**: Automatic cleanup of old data to prevent memory leaks
+6. **Platform Abstraction**: Platform-specific code isolated in permission handling
 
 ## 🔋 Battery Optimization
 
 The app implements several battery optimization strategies:
 
-- **Adaptive scanning intervals** based on device activity
-- **Efficient data storage** with automatic cleanup
-- **Background processing** with minimal resource usage
-- **Smart permission handling** to avoid unnecessary requests
+- **Adaptive scanning intervals**: 10-second active scans with 5-minute background intervals
+- **Memory management**: Automatic cleanup of old snapshots (max 50) and device data (max 2000 devices)
+- **Background processing**: Efficient lifecycle management with app state detection
+- **Smart permission handling**: Platform-specific permission requests to avoid unnecessary system calls
+- **Error recovery**: Automatic retry logic with exponential backoff for failed scans
+- **Data validation**: Prevents memory leaks and data corruption
 
 ## 🐛 Troubleshooting
 
@@ -155,10 +181,24 @@ Enable detailed logging by setting `debugMode = true` in `lib/utils/logger.dart`
 
 ## 📈 Performance Considerations
 
-- **Memory Management**: Automatic cleanup of old scan data
-- **CPU Usage**: Optimized scanning intervals to minimize battery drain
-- **Storage**: Efficient data structures for large device lists
-- **Network**: No internet connectivity required
+- **Memory Management**: Automatic cleanup of old scan data with configurable limits
+- **CPU Usage**: Optimized scanning intervals (10s active, 5min background) to minimize battery drain
+- **Storage**: Efficient data structures for large device lists with automatic pruning
+- **Network**: No internet connectivity required - all data stored locally
+- **Error Recovery**: Automatic retry logic with exponential backoff for failed operations
+- **Data Validation**: Prevents memory leaks and data corruption with comprehensive validation
+
+## 🛡️ Error Handling & Edge Cases
+
+The app implements comprehensive error handling:
+
+- **Bluetooth State Errors**: Handles adapter state changes and connection failures
+- **Permission Errors**: Graceful handling of denied permissions with user guidance
+- **Memory Errors**: Automatic cleanup when memory usage is high
+- **Platform Errors**: Platform-specific error handling for iOS/Android differences
+- **Data Corruption**: Validation and recovery from corrupted scan data
+- **Network Errors**: Handles connectivity issues during Bluetooth operations
+- **Timeout Errors**: Configurable timeouts for all async operations
 
 ## 🔒 Security
 
